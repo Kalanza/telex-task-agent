@@ -1,0 +1,5 @@
+dateparser
+sqlite-utils
+
+# test deps
+pytest
