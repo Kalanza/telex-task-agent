@@ -117,7 +117,7 @@ def home():
             }
             body {
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
                 min-height: 100vh;
                 display: flex;
                 align-items: center;
@@ -133,7 +133,7 @@ def home():
                 padding: 40px;
             }
             h1 {
-                color: #667eea;
+                color: #0ea5e9;
                 font-size: 2.5em;
                 margin-bottom: 10px;
                 display: flex;
@@ -206,13 +206,13 @@ def home():
                 box-shadow: 0 5px 15px rgba(0,0,0,0.2);
             }
             .btn-primary {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
                 color: white;
             }
             .btn-secondary {
                 background: #f8f9fa;
                 color: #333;
-                border: 2px solid #667eea;
+                border: 2px solid #0ea5e9;
             }
             .example {
                 background: #fff3cd;
@@ -257,7 +257,7 @@ def home():
             .stat-value {
                 font-size: 1.8em;
                 font-weight: 700;
-                color: #667eea;
+                color: #0ea5e9;
             }
             .stat-label {
                 font-size: 0.9em;
