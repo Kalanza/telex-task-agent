@@ -1,5 +1,7 @@
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from agents.task_agent import process_message
 from db.database import (
     init_db, get_all_tasks, delete_task, 
@@ -10,8 +12,54 @@ from scheduler import start_scheduler, stop_scheduler
 from datetime import datetime
 import uvicorn
 import atexit
+import os
 
-app = FastAPI()
+app = FastAPI(
+    title="🤖 Task Reminder Agent API",
+    description="""
+    An intelligent AI-powered task reminder assistant with natural language processing.
+    
+    ## Features
+    * 💬 Natural language understanding ("remind me at 5pm to study")
+    * ⏰ Automated reminders via background scheduler
+    * 🗄️ Persistent SQLite database
+    * 🔄 Full CRUD operations for task management
+    * 🤖 Telex A2A protocol integration
+    
+    ## Example Usage
+    Send a POST request to `/a2a/agent/taskAgent`:
+    ```json
+    {
+        "message": "remind me tomorrow at 3pm to call mom",
+        "user": "john_doe"
+    }
+    ```
+    """,
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    contact={
+        "name": "Victor Kalanza",
+        "url": "https://github.com/Kalanza/telex-task-agent",
+    },
+    license_info={
+        "name": "MIT",
+    }
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Mount static files
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # Initialize DB when server starts
 init_db()
@@ -23,9 +71,238 @@ start_scheduler()
 # Register cleanup handler to stop scheduler on shutdown
 atexit.register(stop_scheduler)
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def home():
-    return {"status": "Reminder Agent Online ✔️"}
+    """Landing page with interactive UI"""
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>🤖 Task Reminder Agent</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+            .container {
+                background: white;
+                border-radius: 20px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                max-width: 800px;
+                width: 100%;
+                padding: 40px;
+            }
+            h1 {
+                color: #667eea;
+                font-size: 2.5em;
+                margin-bottom: 10px;
+                display: flex;
+                align-items: center;
+                gap: 15px;
+            }
+            .subtitle {
+                color: #666;
+                font-size: 1.1em;
+                margin-bottom: 30px;
+            }
+            .status {
+                background: #d4edda;
+                color: #155724;
+                padding: 15px 20px;
+                border-radius: 10px;
+                margin-bottom: 30px;
+                border-left: 4px solid #28a745;
+                font-weight: 500;
+            }
+            .features {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+                margin: 30px 0;
+            }
+            .feature {
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 10px;
+                text-align: center;
+                transition: transform 0.3s;
+            }
+            .feature:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            }
+            .feature-icon {
+                font-size: 2.5em;
+                margin-bottom: 10px;
+            }
+            .feature-title {
+                font-weight: 600;
+                color: #333;
+                margin-bottom: 5px;
+            }
+            .feature-desc {
+                font-size: 0.9em;
+                color: #666;
+            }
+            .buttons {
+                display: flex;
+                gap: 15px;
+                margin-top: 30px;
+                flex-wrap: wrap;
+            }
+            .btn {
+                padding: 15px 30px;
+                border: none;
+                border-radius: 10px;
+                font-size: 1em;
+                font-weight: 600;
+                cursor: pointer;
+                text-decoration: none;
+                display: inline-block;
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            }
+            .btn-primary {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+            }
+            .btn-secondary {
+                background: #f8f9fa;
+                color: #333;
+                border: 2px solid #667eea;
+            }
+            .example {
+                background: #fff3cd;
+                border-left: 4px solid #ffc107;
+                padding: 20px;
+                border-radius: 10px;
+                margin: 30px 0;
+            }
+            .example-title {
+                font-weight: 600;
+                color: #856404;
+                margin-bottom: 10px;
+            }
+            code {
+                background: #f8f9fa;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-family: 'Courier New', monospace;
+                color: #e83e8c;
+            }
+            .endpoint {
+                background: #d1ecf1;
+                border-left: 4px solid #17a2b8;
+                padding: 15px;
+                border-radius: 10px;
+                margin-top: 20px;
+                font-family: 'Courier New', monospace;
+                font-size: 0.95em;
+            }
+            .stats {
+                display: flex;
+                gap: 20px;
+                margin: 20px 0;
+            }
+            .stat {
+                flex: 1;
+                background: #e7f3ff;
+                padding: 15px;
+                border-radius: 10px;
+                text-align: center;
+            }
+            .stat-value {
+                font-size: 1.8em;
+                font-weight: 700;
+                color: #667eea;
+            }
+            .stat-label {
+                font-size: 0.9em;
+                color: #666;
+                margin-top: 5px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>
+                <span>🤖</span>
+                <span>Task Reminder Agent</span>
+            </h1>
+            <p class="subtitle">AI-powered task management with natural language understanding</p>
+            
+            <div class="status">
+                ✅ System Online | Scheduler Active | Database Connected
+            </div>
+
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">💬</div>
+                    <div class="feature-title">Natural Language</div>
+                    <div class="feature-desc">Just say "remind me at 5pm"</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">⏰</div>
+                    <div class="feature-title">Auto Reminders</div>
+                    <div class="feature-desc">Delivered right on time</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🗄️</div>
+                    <div class="feature-title">Persistent Storage</div>
+                    <div class="feature-desc">Never lose a task</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔄</div>
+                    <div class="feature-title">Full CRUD API</div>
+                    <div class="feature-desc">Complete task control</div>
+                </div>
+            </div>
+
+            <div class="example">
+                <div class="example-title">💡 Example Usage</div>
+                <p><strong>You:</strong> <code>remind me tomorrow at 3pm to call mom</code></p>
+                <p><strong>Agent:</strong> <code>✅ Saved task #1: 'call mom' for November 04 at 03:00 PM</code></p>
+            </div>
+
+            <div class="endpoint">
+                <strong>A2A Endpoint:</strong><br>
+                POST https://task-reminder-agent-hng-c5d935d03667.herokuapp.com/a2a/agent/taskAgent
+            </div>
+
+            <div class="buttons">
+                <a href="/static/test.html" class="btn btn-primary">🧪 Try it Now!</a>
+                <a href="/docs" class="btn btn-primary">📚 API Documentation</a>
+                <a href="/redoc" class="btn btn-secondary">📖 ReDoc</a>
+                <a href="/tasks" class="btn btn-secondary">📋 View Tasks</a>
+                <a href="https://github.com/Kalanza/telex-task-agent" target="_blank" class="btn btn-secondary">
+                    💻 GitHub Repo
+                </a>
+            </div>
+
+            <div style="margin-top: 40px; text-align: center; color: #666; font-size: 0.9em;">
+                <p>Built with ❤️ using FastAPI, Python & Telex A2A Protocol</p>
+                <p style="margin-top: 5px;">© 2025 Victor Kalanza | HNG Internship Stage 3</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
 
 @app.get("/trigger-reminders")
 def trigger_reminders():

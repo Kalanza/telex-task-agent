@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Task Reminder Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .chat-container {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 18px;
+            border-radius: 18px;
+            max-width: 80%;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .user-message {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+        .agent-message {
+            background: #e9ecef;
+            color: #333;
+        }
+        .message-label {
+            font-size: 0.75em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input, select {
+            padding: 12px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        #messageInput {
+            flex: 1;
+        }
+        #userInput {
+            width: 150px;
+        }
+        button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .quick-btn {
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border: 2px solid #667eea;
+            color: #667eea;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .quick-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat {
+            flex: 1;
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Task Reminder Agent Tester</h1>
+            <p>Test the agent with natural language commands</p>
+        </div>
+        
+        <div class="content">
+            <div class="quick-actions">
+                <button class="quick-btn" onclick="quickMessage('remind me at 5pm to study')">
+                    ⏰ Remind at 5pm
+                </button>
+                <button class="quick-btn" onclick="quickMessage('remind me tomorrow at 3pm to call mom')">
+                    📅 Tomorrow at 3pm
+                </button>
+                <button class="quick-btn" onclick="quickMessage('list my tasks')">
+                    📋 List Tasks
+                </button>
+                <button class="quick-btn" onclick="quickMessage('remind me in 2 hours to take a break')">
+                    ⏱️ In 2 Hours
+                </button>
+            </div>
+
+            <div class="chat-container" id="chatContainer">
+                <div class="message agent-message">
+                    <div class="message-label">Agent</div>
+                    <div>👋 Hello! I'm your task reminder assistant. Try saying things like:</div>
+                    <div style="margin-top: 10px;">
+                        • "remind me at 5pm to study"<br>
+                        • "remind me tomorrow at 3pm to call mom"<br>
+                        • "list my tasks"<br>
+                        • "remind me in 2 hours to take a break"
+                    </div>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing...</p>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="userInput" placeholder="Your Name" value="test-user">
+                <input type="text" id="messageInput" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()" id="sendBtn">Send 🚀</button>
+            </div>
+
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="messageCount">0</div>
+                    <div class="stat-label">Messages Sent</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="taskCount">0</div>
+                    <div class="stat-label">Tasks Created</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="responseTime">-</div>
+                    <div class="stat-label">Avg Response (ms)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let messageCount = 0;
+        let taskCount = 0;
+        let totalResponseTime = 0;
+
+        function addMessage(text, isUser) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'agent-message'}`;
+            
+            const label = document.createElement('div');
+            label.className = 'message-label';
+            label.textContent = isUser ? 'You' : 'Agent';
+            
+            const content = document.createElement('div');
+            content.textContent = text;
+            
+            messageDiv.appendChild(label);
+            messageDiv.appendChild(content);
+            chatContainer.appendChild(messageDiv);
+            
+            // Auto-scroll to bottom
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function updateStats(responseTime) {
+            messageCount++;
+            totalResponseTime += responseTime;
+            
+            document.getElementById('messageCount').textContent = messageCount;
+            document.getElementById('responseTime').textContent = 
+                Math.round(totalResponseTime / messageCount);
+        }
+
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const userInput = document.getElementById('userInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const loading = document.getElementById('loading');
+            
+            const message = messageInput.value.trim();
+            const user = userInput.value.trim() || 'test-user';
+            
+            if (!message) {
+                alert('Please enter a message');
+                return;
+            }
+
+            // Add user message to chat
+            addMessage(message, true);
+            
+            // Clear input and disable button
+            messageInput.value = '';
+            sendBtn.disabled = true;
+            loading.style.display = 'block';
+
+            const startTime = Date.now();
+
+            try {
+                const response = await fetch('/a2a/agent/taskAgent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        user: user
+                    })
+                });
+
+                const data = await response.json();
+                const responseTime = Date.now() - startTime;
+
+                // Add agent response
+                if (data.success) {
+                    addMessage(data.response, false);
+                    
+                    // Check if a task was created
+                    if (data.response.includes('✅ Saved task')) {
+                        taskCount++;
+                        document.getElementById('taskCount').textContent = taskCount;
+                    }
+                } else {
+                    addMessage('❌ Error: ' + (data.error || 'Unknown error'), false);
+                }
+
+                updateStats(responseTime);
+
+            } catch (error) {
+                addMessage('❌ Network error: ' + error.message, false);
+            } finally {
+                sendBtn.disabled = false;
+                loading.style.display = 'none';
+                messageInput.focus();
+            }
+        }
+
+        function quickMessage(message) {
+            document.getElementById('messageInput').value = message;
+            document.getElementById('messageInput').focus();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Focus input on load
+        document.getElementById('messageInput').focus();
+    </script>
+</body>
+</html>
