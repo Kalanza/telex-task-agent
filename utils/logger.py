@@ -1,23 +1,50 @@
 import logging
 from datetime import datetime
 from pathlib import Path
+import sys
 
 # Create logs directory if it doesn't exist
 log_dir = Path(__file__).parent.parent / "logs"
 log_dir.mkdir(exist_ok=True)
 
-# Configure logging
+# Check if running on Windows with limited encoding
+WINDOWS_ENCODING_FIX = sys.platform == 'win32' and sys.stdout.encoding.lower() in ['cp1252', 'windows-1252']
+
+# Configure logging with UTF-8 encoding for Windows compatibility
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
     handlers=[
-        logging.FileHandler(log_dir / 'app.log'),  # Log to file
-        logging.StreamHandler()                     # Also log to console
+        logging.FileHandler(log_dir / 'app.log', encoding='utf-8'),  # Log to file with UTF-8
+        logging.StreamHandler()                                       # Console logging
     ]
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _clean_emoji(message: str) -> str:
+    """Remove or replace emojis for Windows console compatibility."""
+    if not WINDOWS_ENCODING_FIX:
+        return message
+    
+    # Replace common emojis with ASCII equivalents
+    replacements = {
+        '✅': '[OK]',
+        '❌': '[ERROR]',
+        '⏰': '[REMINDER]',
+        '❓': '[?]',
+        '🔄': '[RELOAD]',
+        '📝': '[LOG]',
+        '💾': '[SAVE]',
+        '🚀': '[LAUNCH]',
+    }
+    
+    for emoji, replacement in replacements.items():
+        message = message.replace(emoji, replacement)
+    
+    return message
 
 
 def log(message: str, level: str = "info") -> None:
@@ -33,15 +60,18 @@ def log(message: str, level: str = "info") -> None:
         log("Missing required field", "warning")
         log("Database connection failed", "error")
     """
+    # Clean emojis for Windows console if needed
+    clean_message = _clean_emoji(message)
+    
     level = level.lower()
     
     if level == "info":
-        logger.info(message)
+        logger.info(clean_message)
     elif level == "warning":
-        logger.warning(message)
+        logger.warning(clean_message)
     elif level == "error":
-        logger.error(message)
+        logger.error(clean_message)
     elif level == "debug":
-        logger.debug(message)
+        logger.debug(clean_message)
     else:
-        logger.info(message)  # Default to info
+        logger.info(clean_message)  # Default to info
