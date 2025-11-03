@@ -16,7 +16,7 @@
       ],
       "type": "a2a/agent-node",
       "typeVersion": 1,
-      "url": "YOUR_DEPLOYED_URL/a2a/agent/taskAgent"
+      "url": "http://localhost:9000/a2a/agent/taskAgent"
     }
   ],
   "pinData": {},
