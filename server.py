@@ -424,9 +424,10 @@ async def send_websocket_reminder(user: str, task_text: str, task_id: int):
 
 
 @app.get("/tasks")
-def list_tasks(user: str = None, status: str = None, limit: int = 100):
+def list_tasks(request: Request, user: str = None, status: str = None, limit: int = 100):
     """
     Get all tasks with optional filtering.
+    Returns HTML page for browsers, JSON for API requests.
     
     Query Parameters:
         - user: Filter by username (optional)
@@ -434,6 +435,18 @@ def list_tasks(user: str = None, status: str = None, limit: int = 100):
         - limit: Maximum results (default: 100)
     """
     try:
+        # Check if request is from a browser (Accept header contains text/html)
+        accept_header = request.headers.get("accept", "")
+        if "text/html" in accept_header:
+            # Serve the HTML page for browser requests
+            try:
+                with open("static/tasks.html", "r", encoding="utf-8") as f:
+                    html_content = f.read()
+                return HTMLResponse(content=html_content)
+            except FileNotFoundError:
+                pass  # Fall through to JSON response if file not found
+        
+        # Return JSON for API requests
         tasks = get_all_tasks(user=user, status=status, limit=limit)
         log(f"Retrieved {len(tasks)} tasks (user={user}, status={status})", "info")
         return {"tasks": tasks, "count": len(tasks)}
