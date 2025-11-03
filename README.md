@@ -160,6 +160,27 @@ Receive messages from Telex platform
 }
 ```
 
+### `POST /a2a/agent/taskAgent`
+A2A Protocol endpoint for Telex integration (Agent-to-Agent communication)
+
+**Request:**
+```json
+{
+  "message": "remind me at 5pm to study",
+  "user": "victor-kalanza"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "response": "✅ Saved task #1: 'study' for November 03 at 05:00 PM",
+  "agent": "taskAgent",
+  "timestamp": "2025-11-03T14:30:00.000000"
+}
+```
+
 ### `GET /trigger-reminders`
 Manually trigger reminder check (testing only)
 

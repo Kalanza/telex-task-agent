@@ -169,5 +169,48 @@ async def telex_webhook(request: Request):
     }
 
 
+@app.post("/a2a/agent/taskAgent")
+async def a2a_agent(request: Request):
+    """
+    A2A Protocol endpoint for Telex integration.
+    This endpoint follows the Agent-to-Agent protocol specification.
+    """
+    try:
+        payload = await request.json()
+        log(f"A2A Request received: {payload}", "debug")
+        
+        # Extract message from A2A protocol payload
+        # A2A protocol typically sends: {"message": "...", "user": "...", "context": {...}}
+        message = payload.get("message", "")
+        user = payload.get("user", payload.get("sender", "unknown-user"))
+        
+        if not message:
+            return {
+                "success": False,
+                "error": "No message provided",
+                "response": "❓ No message received"
+            }
+        
+        # Process through your agent
+        reply = process_message(user, message)
+        log(f"A2A Reply to {user}: {reply}", "info")
+        
+        # Return A2A protocol response
+        return {
+            "success": True,
+            "response": reply,
+            "agent": "taskAgent",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        log(f"A2A Error: {e}", "error")
+        return {
+            "success": False,
+            "error": str(e),
+            "response": "❌ An error occurred processing your request"
+        }
+
+
 if __name__ == "__main__":
     uvicorn.run("server:app", host="0.0.0.0", port=9000, reload=True)
