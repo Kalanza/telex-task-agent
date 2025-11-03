@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -10,9 +10,11 @@ from db.database import (
 from utils.logger import log
 from scheduler import start_scheduler, stop_scheduler
 from datetime import datetime
+from typing import List
 import uvicorn
 import atexit
 import os
+import json
 
 app = FastAPI(
     title="🤖 Task Reminder Agent API",
@@ -60,6 +62,32 @@ app.add_middleware(
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+# WebSocket Connection Manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+        log(f"WebSocket connected. Total connections: {len(self.active_connections)}", "info")
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+        log(f"WebSocket disconnected. Total connections: {len(self.active_connections)}", "info")
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except:
+                pass
+
+manager = ConnectionManager()
 
 # Initialize DB when server starts
 init_db()
@@ -285,6 +313,7 @@ def home():
             </div>
 
             <div class="buttons">
+                <a href="/static/login.html" class="btn btn-primary">🔐 Login / Dashboard</a>
                 <a href="/static/test.html" class="btn btn-primary">🧪 Try it Now!</a>
                 <a href="/docs" class="btn btn-primary">📚 API Documentation</a>
                 <a href="/redoc" class="btn btn-secondary">📖 ReDoc</a>
@@ -310,6 +339,87 @@ def trigger_reminders():
     from scheduler import reminder_job
     log("Manual reminder check triggered", "info")
     reminder_job()
+    return {"status": "Reminder check executed"}
+
+
+@app.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    """
+    WebSocket endpoint for real-time task updates and reminders.
+    
+    Connect to: ws://your-domain/ws/your_username
+    
+    Receives:
+    - Real-time task reminders
+    - Task updates
+    - System notifications
+    """
+    await manager.connect(websocket)
+    try:
+        # Send welcome message
+        await manager.send_personal_message(
+            json.dumps({
+                "type": "connected",
+                "message": f"✅ Connected to Task Reminder Agent",
+                "user": user_id,
+                "timestamp": datetime.now().isoformat()
+            }),
+            websocket
+        )
+        
+        while True:
+            # Receive messages from client
+            data = await websocket.receive_text()
+            message_data = json.loads(data)
+            
+            # Handle different message types
+            if message_data.get("type") == "ping":
+                await manager.send_personal_message(
+                    json.dumps({"type": "pong", "timestamp": datetime.now().isoformat()}),
+                    websocket
+                )
+            elif message_data.get("type") == "task_query":
+                # Send task updates
+                tasks = get_all_tasks(user=user_id)
+                await manager.send_personal_message(
+                    json.dumps({
+                        "type": "task_list",
+                        "tasks": tasks,
+                        "count": len(tasks)
+                    }),
+                    websocket
+                )
+            else:
+                # Echo back for testing
+                await manager.send_personal_message(
+                    json.dumps({
+                        "type": "echo",
+                        "received": message_data,
+                        "timestamp": datetime.now().isoformat()
+                    }),
+                    websocket
+                )
+                
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        log(f"User {user_id} disconnected from WebSocket", "info")
+    except Exception as e:
+        log(f"WebSocket error for user {user_id}: {e}", "error")
+        manager.disconnect(websocket)
+
+
+# Helper function to send WebSocket notifications (can be called from scheduler)
+async def send_websocket_reminder(user: str, task_text: str, task_id: int):
+    """Send reminder via WebSocket to connected clients"""
+    message = json.dumps({
+        "type": "reminder",
+        "task_id": task_id,
+        "task": task_text,
+        "message": f"⏰ Reminder: {task_text}",
+        "timestamp": datetime.now().isoformat()
+    })
+    await manager.broadcast(message)
+    log(f"WebSocket reminder sent for task #{task_id}", "info")
     return {"status": "Reminder check executed"}
 
 

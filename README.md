@@ -1,22 +1,37 @@
 # 🤖 Telex Task Agent
 
-> An intelligent task reminder bot that understands natural language and sends automated reminders via Telex messaging platform.
+> An intelligent task reminder bot with natural language processing, real-time WebSocket updates, advanced analytics, and a beautiful modern UI.
 
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![WebSocket](https://img.shields.io/badge/WebSocket-Enabled-brightgreen.svg)](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API)
 
 ## ✨ Features
 
+### Core Features
 - 💬 **Natural Language Processing**: Type tasks naturally like "remind me at 5pm to study"
 - ⏰ **Automated Reminders**: Background scheduler checks every 30 seconds and sends reminders
 - 🔄 **Webhook Integration**: Receives messages from Telex platform via HTTP webhooks
 - 📅 **Smart Time Parsing**: Understands various time formats (5pm, 17:00, tomorrow at 3pm)
-- � **Task Management API**: List, update, delete, and snooze tasks via REST endpoints
-- �💾 **SQLite Database**: Persistent storage with migration support and CRUD operations
+- 🗂️ **Task Management API**: List, update, delete, and snooze tasks via REST endpoints
+- 💾 **SQLite Database**: Persistent storage with migration support and CRUD operations
+
+### Advanced Features
+- 🎨 **Modern Dashboard UI**: Beautiful, responsive task management interface
+- 📊 **Analytics Dashboard**: Charts, graphs, and productivity metrics
+- 📅 **Calendar View**: Visual task calendar with date highlighting
+- 🌙 **Dark Mode**: Toggle between light and dark themes
+- 🔐 **User Authentication**: Login system with guest mode support
+- ⚡ **Real-time WebSocket**: Live task updates and notifications without refresh
+- 🔔 **Desktop Notifications**: Browser notifications for task reminders
+- 📱 **Mobile Responsive**: Works seamlessly on all devices
+
+### Technical Features
 - 📝 **Comprehensive Logging**: File and console logging for debugging
 - 🧪 **Full Test Coverage**: Unit and integration tests with mock infrastructure
 - 🚀 **Production Ready**: Error handling, graceful shutdown, and health checks
+- 🔗 **A2A Protocol**: Agent-to-Agent communication support
 
 ## 🏗️ Architecture
 
@@ -52,6 +67,10 @@ telex-task-agent/
 │   └── tasks.db           # Database file (created at runtime)
 ├── logs/
 │   └── app.log            # Application logs (auto-created)
+├── static/
+│   ├── dashboard.html     # Advanced task dashboard
+│   ├── login.html         # User authentication page
+│   └── test.html          # Interactive API tester
 ├── utils/
 │   ├── nlp.py             # Natural language processing
 │   ├── logger.py          # Logging utilities
@@ -59,7 +78,7 @@ telex-task-agent/
 ├── tests/
 │   └── test_nlp.py        # Unit tests
 ├── scheduler.py           # APScheduler for reminders
-├── server.py              # FastAPI webhook server
+├── server.py              # FastAPI webhook server + WebSocket
 ├── main.py                # CLI interface
 ├── requirements.txt       # Python dependencies
 └── README.md             # Documentation
@@ -94,9 +113,50 @@ python server.py
 
 Server starts on `http://localhost:9000`
 
-**View Interactive API Documentation:**
-- Swagger UI: http://localhost:9000/docs
+**Access the Application:**
+- Landing Page: http://localhost:9000/
+- Login/Dashboard: http://localhost:9000/static/login.html
+- Interactive Tester: http://localhost:9000/static/test.html
+- API Documentation: http://localhost:9000/docs
 - ReDoc: http://localhost:9000/redoc
+
+### Dashboard Features
+
+#### 1. **Login System** (`/static/login.html`)
+- Username/password authentication (demo mode)
+- Guest access option
+- Persistent session storage
+
+#### 2. **Task Dashboard** (`/static/dashboard.html`)
+- **Tasks Tab**: Visual task list with real-time updates
+  - Statistics cards (total, pending, completed, due today)
+  - Filter buttons (all, pending, completed, today)
+  - Edit, delete, and snooze actions
+  - Real-time WebSocket notifications
+  
+- **Calendar Tab**: Visual calendar view
+  - Navigate months (previous, today, next)
+  - Tasks highlighted on dates
+  - Click dates to view tasks
+  
+- **Analytics Tab**: Productivity metrics
+  - Task creation chart (last 7 days)
+  - Completion rate
+  - Average response time
+  - Productivity streak
+  - Productivity score
+
+#### 3. **Dark Mode**
+- Toggle between light and dark themes
+- Preference saved to localStorage
+- Smooth theme transitions
+
+#### 4. **Real-time Updates (WebSocket)**
+- Live task reminders
+- Instant task list refresh
+- Browser notifications
+- Audio alerts
+- Auto-reconnection on disconnect
 
 ### Quick Test
 
@@ -281,6 +341,55 @@ Snooze a task for specified minutes
 ### `GET /docs`
 Interactive API documentation (Swagger UI)
 
+### `WS /ws/{user_id}`
+WebSocket endpoint for real-time task updates
+
+**Connection:**
+```javascript
+const ws = new WebSocket('ws://localhost:9000/ws/alice');
+
+ws.onopen = () => {
+  console.log('Connected');
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Received:', data);
+};
+
+// Send ping to keep alive
+ws.send(JSON.stringify({ type: 'ping' }));
+
+// Query tasks
+ws.send(JSON.stringify({ type: 'task_query' }));
+```
+
+**Message Types:**
+
+**Received Messages:**
+```json
+// Connection confirmation
+{"type": "connected", "message": "✅ Connected", "user": "alice"}
+
+// Task reminder
+{"type": "reminder", "task_id": 1, "task": "study", "message": "⏰ Reminder: study"}
+
+// Task list response
+{"type": "task_list", "tasks": [...], "count": 5}
+
+// Ping response
+{"type": "pong", "timestamp": "2025-11-03T..."}
+```
+
+**Send Messages:**
+```json
+// Keep connection alive
+{"type": "ping"}
+
+// Request task list
+{"type": "task_query"}
+```
+
 ## ⚙️ Configuration
 
 ### Environment Variables
@@ -352,6 +461,7 @@ See [TESTING.md](TESTING.md) for detailed testing guide.
 
 - **FastAPI**: Modern web framework
 - **Uvicorn**: ASGI server
+- **WebSockets**: Real-time bidirectional communication
 - **APScheduler**: Background job scheduling
 - **dateparser**: Natural language date parsing
 - **requests**: HTTP client for Telex API
