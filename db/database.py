@@ -30,9 +30,18 @@ def init_db() -> None:
                 user TEXT NOT NULL,
                 task TEXT NOT NULL,
                 time DATETIME NOT NULL,
-                status TEXT DEFAULT 'pending'
+                status TEXT DEFAULT 'pending',
+                sent BOOLEAN DEFAULT 0
             )
         """)
+        
+        # Add sent column to existing tables (migration)
+        try:
+            cursor.execute("ALTER TABLE tasks ADD COLUMN sent BOOLEAN DEFAULT 0")
+        except sqlite3.OperationalError:
+            # Column already exists
+            pass
+        
         conn.commit()
 
 def save_task(user: str, task: str, time: datetime) -> int:
@@ -89,6 +98,46 @@ def update_task_status(task_id: int, status: str) -> bool:
         cursor.execute(
             "UPDATE tasks SET status = ? WHERE id = ?",
             (status, task_id)
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def get_due_tasks() -> List[Tuple]:
+    """
+    Get all tasks that are due (time <= now) and haven't been sent yet.
+    
+    Returns:
+        List of tuples: (id, user, task, time, status, sent)
+    """
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        now = datetime.now().isoformat()
+        cursor.execute("""
+            SELECT * FROM tasks 
+            WHERE time <= ? 
+            AND sent = 0 
+            AND status = 'pending'
+            ORDER BY time ASC
+        """, (now,))
+        return cursor.fetchall()
+
+
+def mark_task_sent(task_id: int) -> bool:
+    """
+    Mark a task as sent (reminder delivered).
+    
+    Args:
+        task_id: ID of the task to mark as sent
+        
+    Returns:
+        True if task was updated, False otherwise
+    """
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE tasks SET sent = 1, status = 'sent' WHERE id = ?",
+            (task_id,)
         )
         conn.commit()
         return cursor.rowcount > 0
