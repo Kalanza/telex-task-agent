@@ -94,6 +94,25 @@ python server.py
 
 Server starts on `http://localhost:9000`
 
+**View Interactive API Documentation:**
+- Swagger UI: http://localhost:9000/docs
+- ReDoc: http://localhost:9000/redoc
+
+### Quick Test
+
+```bash
+# Test health endpoint
+curl http://localhost:9000/
+
+# Test A2A endpoint (main Telex integration point)
+curl -X POST http://localhost:9000/a2a/agent/taskAgent \
+  -H "Content-Type: application/json" \
+  -d '{"message": "remind me at 5pm to study", "user": "test-user"}'
+
+# Expected response:
+# {"success": true, "response": "✅ Saved task #1: 'study' for ...", "agent": "taskAgent", "timestamp": "..."}
+```
+
 ## 💡 Usage Examples
 
 ### Create a Task via Webhook
