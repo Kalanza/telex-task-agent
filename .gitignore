@@ -48,6 +48,8 @@ htmlcov/
 
 # Logs
 *.log
+logs/
+app.log
 
 # Environment variables
 .env
