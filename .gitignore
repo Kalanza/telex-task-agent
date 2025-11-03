@@ -54,6 +54,33 @@ app.log
 # Environment variables
 .env
 .env.local
+.env.*.local
+.env.production
+.env.development
+.env.test
+
+# Secrets and credentials (double protection)
+secrets/
+credentials/
+*.key
+*.pem
+*.crt
+*.cert
+*.p12
+config.local.json
+secrets.json
 
 # OS
 Thumbs.db
+.DS_Store
+desktop.ini
+
+# Heroku
+.heroku/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~.nib
