@@ -16,7 +16,7 @@
       ],
       "type": "a2a/agent-node",
       "typeVersion": 1,
-      "url": "http://localhost:9000/a2a/agent/taskAgent"
+      "url": "https://task-reminder-agent-hng-c5d935d03667.herokuapp.com/a2a/agent/taskAgent"
     }
   ],
   "pinData": {},
