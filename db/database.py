@@ -141,3 +141,136 @@ def mark_task_sent(task_id: int) -> bool:
         )
         conn.commit()
         return cursor.rowcount > 0
+
+
+def get_all_tasks(user: Optional[str] = None, status: Optional[str] = None, limit: int = 100) -> List[dict]:
+    """
+    Get all tasks with optional filtering.
+    
+    Args:
+        user: Filter by username (optional)
+        status: Filter by status (optional)
+        limit: Maximum number of results
+        
+    Returns:
+        List of task dictionaries with all fields
+    """
+    with get_db_connection() as conn:
+        conn.row_factory = sqlite3.Row  # Enable column access by name
+        cursor = conn.cursor()
+        
+        query = "SELECT * FROM tasks WHERE 1=1"
+        params = []
+        
+        if user:
+            query += " AND user = ?"
+            params.append(user)
+        if status:
+            query += " AND status = ?"
+            params.append(status)
+        
+        query += " ORDER BY time DESC LIMIT ?"
+        params.append(limit)
+        
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        
+        # Convert rows to dictionaries
+        return [dict(row) for row in rows]
+
+
+def delete_task(task_id: int) -> bool:
+    """
+    Delete a task by ID.
+    
+    Args:
+        task_id: ID of the task to delete
+        
+    Returns:
+        True if task was deleted, False if not found
+    """
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def update_task(task_id: int, task_text: Optional[str] = None, 
+                time: Optional[datetime] = None, status: Optional[str] = None) -> bool:
+    """
+    Update a task's details.
+    
+    Args:
+        task_id: ID of the task to update
+        task_text: New task description (optional)
+        time: New scheduled time (optional)
+        status: New status (optional)
+        
+    Returns:
+        True if task was updated, False if not found
+    """
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        
+        updates = []
+        params = []
+        
+        if task_text is not None:
+            updates.append("task = ?")
+            params.append(task_text)
+        if time is not None:
+            updates.append("time = ?")
+            time_str = time.isoformat() if isinstance(time, datetime) else str(time)
+            params.append(time_str)
+        if status is not None:
+            updates.append("status = ?")
+            params.append(status)
+        
+        if not updates:
+            return False  # Nothing to update
+        
+        params.append(task_id)
+        query = f"UPDATE tasks SET {', '.join(updates)} WHERE id = ?"
+        
+        cursor.execute(query, params)
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def snooze_task(task_id: int, minutes: int) -> bool:
+    """
+    Snooze a task by adding minutes to its scheduled time.
+    
+    Args:
+        task_id: ID of the task to snooze
+        minutes: Number of minutes to snooze
+        
+    Returns:
+        True if task was snoozed, False if not found
+    """
+    from datetime import timedelta
+    
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        
+        # Get current task time
+        cursor.execute("SELECT time, sent FROM tasks WHERE id = ?", (task_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            return False
+        
+        current_time_str, sent = row
+        current_time = datetime.fromisoformat(current_time_str)
+        
+        # Add snooze time
+        new_time = current_time + timedelta(minutes=minutes)
+        
+        # Update task with new time and reset sent flag
+        cursor.execute(
+            "UPDATE tasks SET time = ?, sent = 0, status = 'pending' WHERE id = ?",
+            (new_time.isoformat(), task_id)
+        )
+        conn.commit()
+        return cursor.rowcount > 0

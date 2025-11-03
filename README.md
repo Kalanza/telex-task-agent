@@ -12,8 +12,10 @@
 - ⏰ **Automated Reminders**: Background scheduler checks every 30 seconds and sends reminders
 - 🔄 **Webhook Integration**: Receives messages from Telex platform via HTTP webhooks
 - 📅 **Smart Time Parsing**: Understands various time formats (5pm, 17:00, tomorrow at 3pm)
-- 💾 **SQLite Database**: Persistent storage with migration support
+- � **Task Management API**: List, update, delete, and snooze tasks via REST endpoints
+- �💾 **SQLite Database**: Persistent storage with migration support and CRUD operations
 - 📝 **Comprehensive Logging**: File and console logging for debugging
+- 🧪 **Full Test Coverage**: Unit and integration tests with mock infrastructure
 - 🚀 **Production Ready**: Error handling, graceful shutdown, and health checks
 
 ## 🏗️ Architecture
@@ -160,6 +162,81 @@ Receive messages from Telex platform
 
 ### `GET /trigger-reminders`
 Manually trigger reminder check (testing only)
+
+### `GET /tasks`
+List all tasks with optional filters
+
+**Query Parameters:**
+- `user` (optional): Filter by username
+- `status` (optional): Filter by status (pending/completed)
+- `limit` (optional): Maximum tasks to return (default: 100)
+
+**Response:**
+```json
+{
+  "tasks": [
+    {
+      "id": 1,
+      "user": "alice",
+      "task": "call mom",
+      "time": "2024-11-04 15:00:00",
+      "status": "pending",
+      "sent": 0
+    }
+  ],
+  "count": 1
+}
+```
+
+### `DELETE /tasks/{task_id}`
+Delete a specific task
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Task 1 deleted"
+}
+```
+
+### `PATCH /tasks/{task_id}`
+Update task details
+
+**Request:**
+```json
+{
+  "task": "call dad instead",
+  "time": "2024-11-04 16:00:00",
+  "status": "pending"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Task 1 updated"
+}
+```
+
+### `POST /tasks/{task_id}/snooze`
+Snooze a task for specified minutes
+
+**Request:**
+```json
+{
+  "minutes": 30
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Task 1 snoozed for 30 minutes",
+  "new_time": "2024-11-04 15:30:00"
+}
+```
 
 ### `GET /docs`
 Interactive API documentation (Swagger UI)
